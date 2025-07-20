@@ -57,6 +57,16 @@ python src/main.py --lang both
 python src/main.py --help
 ```
 
+- 5. Generate 3 mixed-language documents (MD and full-page PNG only) [New]
+```bash
+python src/main.py --lang both -n 3
+```
+
+- 6. Generate 3 mixed-language documents and ALSO generate a PDF for each: [New]
+```bash
+python src/main.py --lang both -n 3 --pdf
+```
+
 
 ## Contributing
 Contributions are welcome! Please feel free to submit a pull request or open an issue for any enhancements or bug fixes.
