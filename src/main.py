@@ -6,20 +6,18 @@ import argparse
 from text_provider import TextProvider
 from markdown_generator import MarkdownGenerator
 from html_renderer import render_to_html
-from image_capturer import capture_screenshot
+# Updated import to reflect the new function name
+from image_capturer import render_and_capture
 
 def main(args):
     print("Starting synthetic document generation...")
     print(f"Language mode: {args.lang}")
     print(f"Number of files to generate: {args.num_files}")
+    if args.pdf:
+        print("PDF generation: ENABLED")
 
-    # --- Configuration ---
-    # Use the language argument passed from the command line
     lang = args.lang 
-    
-    # --- CHANGE: Make the output directory name dynamic based on the language ---
     output_dir = f"output/{lang}_set_001"
-    
     print(f"Output will be saved in: {output_dir}")
 
     element_probabilities = {
@@ -29,24 +27,21 @@ def main(args):
         'list': 0.15,
     }
     
-    # --- Setup ---
     os.makedirs(output_dir, exist_ok=True)
     
-    # Initialize our generator components with the chosen language
     text_provider = TextProvider(lang=lang)
     markdown_generator = MarkdownGenerator(text_provider)
     
-    # --- Generation Loop ---
-    # Use the number of files argument from the command line
     for i in range(1, args.num_files + 1):
         filename_base = f"{i:05d}"
         md_path = os.path.join(output_dir, f"{filename_base}.md")
         png_path = os.path.join(output_dir, f"{filename_base}.png")
+        # Define the PDF path as well
+        pdf_path = os.path.join(output_dir, f"{filename_base}.pdf")
         
         print(f"Generating {filename_base}...")
 
-        # 1. Generate Markdown content
-        num_elements = random.randint(5, 15) 
+        num_elements = random.randint(10, 25) # Increased elements to test long documents
         markdown_content = markdown_generator.generate_document(
             num_elements=num_elements,
             element_probabilities=element_probabilities
@@ -55,7 +50,6 @@ def main(args):
         with open(md_path, "w", encoding="utf-8") as f:
             f.write(markdown_content)
 
-        # 2. Generate CSS (for now, a placeholder)
         css_content = """
             body { 
                 font-family: 'Times New Roman', 'SolaimanLipi', serif; 
@@ -69,15 +63,24 @@ def main(args):
                 padding-bottom: 5px;
             }
             p { line-height: 1.6; }
+            /* Ensure list styles are visible */
+            ul, ol { padding-left: 40px; }
         """
         
-        # 3. Render Markdown+CSS to HTML
         html_content = render_to_html(markdown_content, css_content)
 
-        # 4. Capture screenshot of the rendered HTML
-        capture_screenshot(html_content, png_path)
+        # Use the new, more powerful capture function
+        render_and_capture(
+            html_string=html_content,
+            png_path=png_path,
+            # Pass the pdf_path only if the --pdf flag was used
+            pdf_path=pdf_path if args.pdf else None
+        )
         
-        print(f"  -> Saved: {md_path} and {png_path}")
+        saved_files = f"{md_path} and {png_path}"
+        if args.pdf:
+            saved_files += f" and {pdf_path}"
+        print(f"  -> Saved: {saved_files}")
 
     print("\nGeneration complete.")
 
@@ -89,14 +92,21 @@ if __name__ == "__main__":
         type=str, 
         default='en', 
         choices=['en', 'bn', 'both'],
-        help="Language to use for text generation: 'en' for English, 'bn' for Bengali, 'both' for mixed."
+        help="Language to use for text generation."
     )
     
     parser.add_argument(
         '-n', '--num-files',
         type=int,
         default=5,
-        help="Number of document pairs (md/png) to generate."
+        help="Number of document pairs to generate."
+    )
+    
+    # --- ADDED: New argument for PDF generation ---
+    parser.add_argument(
+        '--pdf',
+        action='store_true', # This makes it a flag, e.g., --pdf
+        help="Enable PDF generation in addition to PNG images."
     )
 
     parsed_args = parser.parse_args()
